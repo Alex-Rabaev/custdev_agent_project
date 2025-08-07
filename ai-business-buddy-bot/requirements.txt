@@ -13,9 +13,15 @@ fastapi==0.116.1
 frozenlist==1.7.0
 h11==0.16.0
 idna==3.10
+langchain==0.3.27
+langchain-core==0.3.72
+langchain-mongodb==0.6.2
+langchain-openai==0.3.28
+langchain-text-splitters==0.3.9
 magic-filter==1.0.12
 multidict==6.6.3
 nexus-rpc==1.1.0
+openai==1.99.1
 propcache==0.3.2
 protobuf==5.29.5
 pydantic==2.11.7
