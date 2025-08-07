@@ -35,8 +35,7 @@ async def handle_start(message: types.Message):
         )
 
     await message.answer(
-        "👋 Привет! Я AI Business Buddy — твой помощник в управлении бизнесом. "
-        "Давай начнём с нескольких коротких вопросов, чтобы я лучше понял, как тебе помочь."
+        "👋 I am AI Business Buddy — your assistant for business management. "
     )
 
     user.pop("_id", None)
@@ -59,7 +58,7 @@ async def handle_text_message(message: types.Message):
         
         # Отправляем сигнал в workflow
         await handle.signal(UserOnboardingWorkflow.submit_answer, answer_text)
-        await message.answer("✅ Спасибо! Ответ получен.")
+        await message.answer("✅")
     except RPCError as e:
         if "workflow execution already completed" in str(e):
             await message.answer("⚠️ Опрос уже завершён. Напиши /start, чтобы пройти заново.")

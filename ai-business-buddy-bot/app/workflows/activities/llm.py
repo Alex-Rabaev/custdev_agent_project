@@ -27,7 +27,7 @@ async def detect_language(text: str) -> str:
         model="gpt-4o",
         messages=[
             {"role": "system", "content": "You are a language detector."},
-            {"role": "user", "content": f"What language is this? Return ISO code only (e.g., en, ru, he): {text}"}
+            {"role": "user", "content": f"What language the user want to use? Return ISO code only (e.g., en, ru, he): {text}"}
         ],
         temperature=0
     )
@@ -71,12 +71,12 @@ async def get_next_question(profile: dict, answers: list[str], language: str) ->
             context += f"Вопрос {idx+1}: {ans}\n"
         
         context += f"""
-Задай следующий вопрос (номер {len(answers) + 1}) из этого списка:
-1. Как вы в настоящее время обрабатываете бронирования клиентов?
-2. Какие онлайн-каналы вы используете для записи?
-3. Как часто вы сталкиваетесь с пропущенными записями?
+Задай следующий вопросы из списка по одному: 
+В какой нише работает пользователь? 
+Онлайн бизнес или есть физическая точка? 
+Сколько у него человек в команде? 
 
-Используй язык пользователя ({language}) и адаптируй вопрос под его профиль.
+Используй язык пользователя ({language}) и по результатам заполни его профиль.
 """
     else:
         # Для остальных вопросов используем полный промпт
@@ -109,11 +109,9 @@ async def get_next_question(profile: dict, answers: list[str], language: str) ->
     except Exception as e:
         # Fallback в случае ошибки
         fallback_questions = [
-            "Как вы в настоящее время обрабатываете бронирования клиентов?",
-            "Какие онлайн-каналы вы используете для записи?",
-            "Как часто вы сталкиваетесь с пропущенными записями?",
-            "Какие инструменты вы используете для управления клиентами?",
-            "Какой у вас основной вызов в управлении клиентами?"
+            "ERROR",
+            "ERROR",
+            "ERROR"
         ]
         
         question_index = min(len(answers), len(fallback_questions) - 1)
