@@ -42,7 +42,7 @@ class UserOnboardingWorkflow:
             question_data = await workflow.execute_activity(
                 llm.get_next_question,
                 args=[self.profile, [a["answer"] for a in self.answers], self.language],
-                schedule_to_close_timeout=timedelta(seconds=20),
+                schedule_to_close_timeout=timedelta(seconds=60),
             )
 
             question_text = question_data["question"]
@@ -64,6 +64,8 @@ class UserOnboardingWorkflow:
                     args=[int(self.telegram_id), answer],
                     schedule_to_close_timeout=timedelta(seconds=10),
                 )
+                # Для email тоже добавляем в ответы, чтобы правильно считать количество
+                self.answers.append({"question": question_text, "answer": answer})
 
             else:
                 await workflow.execute_activity(
@@ -79,6 +81,23 @@ class UserOnboardingWorkflow:
                     db.mark_survey_complete,
                     args=[int(self.telegram_id)],
                     schedule_to_close_timeout=timedelta(seconds=5),
+                )
+                
+                # Отправляем финальное сообщение
+                final_message = """🎉 Спасибо за прохождение опроса!
+
+На основе ваших ответов я подготовлю персонализированный анализ вашего бизнеса и рекомендации по улучшению.
+
+В ближайшее время вы получите:
+• Анализ ключевых вызовов вашего бизнеса
+• Персонализированные рекомендации
+• Информацию о том, как AI Business Buddy может помочь решить ваши задачи
+
+Просто напишите мне, если у вас есть вопросы или нужна помощь!"""
+                await workflow.execute_activity(
+                    messaging.send_message,
+                    args=[int(self.telegram_id), final_message],
+                    schedule_to_close_timeout=timedelta(seconds=15),
                 )
 
     @workflow.signal

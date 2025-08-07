@@ -37,15 +37,88 @@ async def detect_language(text: str) -> str:
 @activity.defn
 async def get_next_question(profile: dict, answers: list[str], language: str) -> dict:
     from app.langchain.llm_chain import get_conversation_chain
+    from app.utils.prompt_loader import PROMPT_TEXT
+    
     chain = get_conversation_chain(session_id="static_for_now")
 
-    context = f"Язык общения: {language}. Профиль пользователя: {profile}.\n"
-    for idx, ans in enumerate(answers):
-        context += f"Ответ на вопрос {idx+1}: {ans}\n"
-    context += "Какой следующий вопрос стоит задать пользователю?"
+    # Если уже задано 21 вопрос, завершаем опрос
+    if len(answers) >= 21:
+        return {
+            "question": "Спасибо за прохождение полного опроса! Теперь я лучше понимаю ваш бизнес и готов помочь вам с любыми вопросами.",
+            "is_final": True,
+            "is_email": False
+        }
 
-    response = chain.invoke(
-        {"input": context},
-        config={"configurable": {"session_id": "static_for_now"}}
-    )
-    return {"question": response.content, "is_final": False, "is_email": False}
+    # Если это последний вопрос (21-й), запрашиваем email
+    if len(answers) >= 20:
+        return {
+            "question": "Пожалуйста, укажите ваш email для получения дополнительных материалов и уведомлений о новых возможностях для вашего бизнеса.",
+            "is_final": True,
+            "is_email": True
+        }
+
+    # Для первых вопросов используем короткий промпт
+    if len(answers) < 3:
+        context = f"""Ты — AI Business Buddy. Задай следующий вопрос из анкеты для понимания бизнеса пользователя.
+
+Язык общения: {language}. 
+Профиль пользователя: {profile}.
+Количество уже заданных вопросов: {len(answers)}.
+
+Ответы пользователя:
+"""
+        for idx, ans in enumerate(answers):
+            context += f"Вопрос {idx+1}: {ans}\n"
+        
+        context += f"""
+Задай следующий вопрос (номер {len(answers) + 1}) из этого списка:
+1. Как вы в настоящее время обрабатываете бронирования клиентов?
+2. Какие онлайн-каналы вы используете для записи?
+3. Как часто вы сталкиваетесь с пропущенными записями?
+
+Используй язык пользователя ({language}) и адаптируй вопрос под его профиль.
+"""
+    else:
+        # Для остальных вопросов используем полный промпт
+        context = f"""Ты — AI Business Buddy. Используй следующий промпт для работы:
+
+{PROMPT_TEXT}
+
+Язык общения: {language}. 
+Профиль пользователя: {profile}.
+Количество уже заданных вопросов: {len(answers)}.
+
+Ответы пользователя:
+"""
+        for idx, ans in enumerate(answers):
+            context += f"Вопрос {idx+1}: {ans}\n"
+        
+        context += f"""
+На основе промпта и предыдущих ответов, задай следующий вопрос из анкеты (вопрос номер {len(answers) + 1}).
+Адаптируй вопрос под профиль пользователя и пропускай нерелевантные вопросы.
+Используй язык пользователя ({language}).
+"""
+
+    try:
+        response = chain.invoke(
+            {"input": context},
+            config={"configurable": {"session_id": "static_for_now"}}
+        )
+        
+        return {"question": response.content, "is_final": False, "is_email": False}
+    except Exception as e:
+        # Fallback в случае ошибки
+        fallback_questions = [
+            "Как вы в настоящее время обрабатываете бронирования клиентов?",
+            "Какие онлайн-каналы вы используете для записи?",
+            "Как часто вы сталкиваетесь с пропущенными записями?",
+            "Какие инструменты вы используете для управления клиентами?",
+            "Какой у вас основной вызов в управлении клиентами?"
+        ]
+        
+        question_index = min(len(answers), len(fallback_questions) - 1)
+        return {
+            "question": fallback_questions[question_index],
+            "is_final": len(answers) >= 4,
+            "is_email": len(answers) >= 4
+        }
