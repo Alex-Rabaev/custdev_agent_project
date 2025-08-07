@@ -13,13 +13,13 @@ class UserOnboardingWorkflow:
 
         welcome_msg = await workflow.execute_activity(
             llm.generate_welcome_message,
-            args=[str(self.telegram_id)],  # 👈 обязательно строкой
+            args=[str(self.telegram_id)],
             schedule_to_close_timeout=timedelta(seconds=15),
         )
 
         await workflow.execute_activity(
             messaging.send_message,
-            args=[self.telegram_id, welcome_msg],
+            args=[int(self.telegram_id), welcome_msg],
             schedule_to_close_timeout=timedelta(seconds=15),
         )
 
@@ -33,7 +33,7 @@ class UserOnboardingWorkflow:
 
         await workflow.execute_activity(
             db.set_user_language,
-            args=[self.telegram_id, self.language],
+            args=[int(self.telegram_id), self.language],
             schedule_to_close_timeout=timedelta(seconds=5),
         )
 
@@ -49,7 +49,7 @@ class UserOnboardingWorkflow:
 
             await workflow.execute_activity(
                 messaging.send_message,
-                args=[self.telegram_id, question_text],
+                args=[int(self.telegram_id), question_text],
                 schedule_to_close_timeout=timedelta(seconds=15),
             )
 
@@ -61,14 +61,14 @@ class UserOnboardingWorkflow:
             if question_data.get("is_email"):
                 await workflow.execute_activity(
                     db.save_user_email,
-                    args=[self.telegram_id, answer],
+                    args=[int(self.telegram_id), answer],
                     schedule_to_close_timeout=timedelta(seconds=10),
                 )
 
             else:
                 await workflow.execute_activity(
                     db.save_answer,
-                    args=[self.telegram_id, {"question": question_text, "answer": answer}],
+                    args=[int(self.telegram_id), {"question": question_text, "answer": answer}],
                     schedule_to_close_timeout=timedelta(seconds=15),
                 )
                 self.answers.append({"question": question_text, "answer": answer})
@@ -77,7 +77,7 @@ class UserOnboardingWorkflow:
                 self.finished = True
                 await workflow.execute_activity(
                     db.mark_survey_complete,
-                    args=[self.telegram_id],
+                    args=[int(self.telegram_id)],
                     schedule_to_close_timeout=timedelta(seconds=5),
                 )
 

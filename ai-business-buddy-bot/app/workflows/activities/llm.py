@@ -10,13 +10,14 @@ load_dotenv()
 async def generate_welcome_message(user_id: str) -> str:
     from app.langchain.llm_chain import get_conversation_chain 
     chain = get_conversation_chain(session_id=user_id)
-    return await chain.invoke(
+    response = chain.invoke(
         {"input": (
             "Please greet the user in a friendly tone in English. "
             "Explain what kind of assistant you are and ask the user to reply in the language they'd like to continue in."
         )},
         config={"configurable": {"session_id": user_id}}
     )
+    return response.content
 
 
 @activity.defn
@@ -34,13 +35,17 @@ async def detect_language(text: str) -> str:
 
 
 @activity.defn
-async def get_next_question(user_id: str, profile: dict, answers: list[str], language: str) -> str:
-    from app.langchain.llm_chain import get_conversation_chain  
-    chain = get_conversation_chain(session_id=user_id)
+async def get_next_question(profile: dict, answers: list[str], language: str) -> dict:
+    from app.langchain.llm_chain import get_conversation_chain
+    chain = get_conversation_chain(session_id="static_for_now")
 
     context = f"Язык общения: {language}. Профиль пользователя: {profile}.\n"
     for idx, ans in enumerate(answers):
         context += f"Ответ на вопрос {idx+1}: {ans}\n"
     context += "Какой следующий вопрос стоит задать пользователю?"
 
-    return chain.invoke({"input": context})
+    response = chain.invoke(
+        {"input": context},
+        config={"configurable": {"session_id": "static_for_now"}}
+    )
+    return {"question": response.content, "is_final": False, "is_email": False}
